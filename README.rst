@@ -21,13 +21,24 @@ And add to settings!
 Usage
 -----
 
+Note: Every time you restart helga with preexisting meetings, you must use the meet
+command to initialize the scheduler! It can be a dummy command like ``!meet foobar``
+that isn't recognized, as long as it hits the meet plugin.
+
 Schedule a daily standup at 3pm Mon-Fri, saying in room #general: "PSA @all"::
 
     !meet schedule standup "#general" "PSA @all" "hour 15 day_of_week 0-4"
 
+The above final argument is a cron formatted group of kwargs.
+
 Adds a status entry for the day for the user. Nick and time saved along with status::
 
     !meet status standup made widget1, started on widget2. will finish widget2, and no blockers
+
+Then, we can query for digests of certain date ranges. The start and end date ranges
+should be quoted, and are kwargs of datetime::
+
+    !meet digest standup "year 2016 month 12 day 1" "year 2016 month 12 day 30"
 
 Development
 -----------
@@ -48,12 +59,6 @@ Release
 To publish your plugin to pypi, sdist and wheels are (registered,) created and uploaded with::
 
     make release
-
-TODO
-----
-
-* Make queryable log with date or date range. Post to dpaste possibly.
-* Ensure loading from cold start works, too!
 
 License
 -------

@@ -1,8 +1,10 @@
 from datetime import datetime
+import json
 
 import atexit
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+import requests
 
 from helga.db import db
 from helga.plugins import command, random_ack
@@ -32,9 +34,19 @@ def schedule(name, channel, participants, cron_interval):
     )
 
 
-def remove(name):
+def remove(name, entries=False):
     db.meet.meetup.delete_many({'name': name})
-    db.meet.entries.delete_many({'name': name})
+    if entries:
+        db.meet.entries.delete_many({'name': name})
+
+
+def args_dict(arg, number=False):
+    s = arg.split(' ')
+    s = dict(zip(s[::2], s[1::2]))
+    if number:
+        for k, v in s.items():
+            s[k] = int(v)
+    return s
 
 
 @command('meet', help='System for asynchronous meetings e.g. standup', shlex=True)
@@ -46,14 +58,39 @@ def meet(client, channel, nick, message, cmd, args):
         return nick + ": " + random_ack()
     if args[0] == 'schedule':
         name = args[1]
-        s = args[4].split(' ')  # schedule arguments, e.g. "days 1"
-        s = dict(zip(s[::2], s[1::2]))
+        s = args_dict(args[4])  # schedule arguments, e.g. "days 1"
         schedule(name, args[2], args[3], s)
         add_meeting_scheduler(name)
         return random_ack()
+    elif args[0] == 'digest':
+        name = args[1]
+        start_date = args_dict(args[2], True)
+        start_date = datetime(**start_date)
+        end_date = args_dict(args[3], True)
+        end_date = datetime(**end_date)
+        # add more filters to find, like nick?
+        cursor = db.meet.entries.find({
+            'name': name,
+            'time': {'$gte': start_date, '$lt': end_date},
+        })
+        statuses = []
+        for p in cursor:
+            statuses.append({
+                'nick': p['nick'],
+                'status': ' '.join(p['status']),
+                'time': p['time'].strftime("%Y-%m-%d %H:%M:%S"),
+            })
+        statuses = [json.dumps(s, sort_keys=True, indent=2) for s in statuses]
+        if not statuses:
+            return nick + ": query empty"
+        payload = {'title': 'helga-meet digest', 'content': '\n'.join(statuses)}
+        r = requests.post("http://dpaste.com/api/v2/", payload)
+        return r.headers['location']
     if args[0] == 'remove':
         if nick in settings.OPERATORS:
-            remove(args[1])
+            entries = len(args) > 2 and args[2] == 'entries'
+            remove(args[1], entries)
+            scheduler.remove_job('meeting_monitor_' + name)
             return random_ack()
         return "Sorry " + nick + ", you don't have permission to do that"
     return "I don't understand this meet request"

@@ -22,7 +22,7 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     zip_safe=True,
-    install_requires=['helga', 'apscheduler'],
+    install_requires=['helga', 'apscheduler', 'requests'],
     test_suite='tests',
     entry_points=dict(
         helga_plugins=[

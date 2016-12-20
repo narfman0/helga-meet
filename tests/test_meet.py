@@ -37,7 +37,7 @@ class Testmeet(unittest.TestCase):
         self.assertTrue(db.meet.entries.find().count() > 0)
         result = db.meet.meetup.find_one({'name': test1['name']})
         self.assertEqual(test1['name'], result['name'])
-        remove(test1['name'])
+        remove(test1['name'], True)
         self.assertFalse(db.meet.meetup.find().count() > 0)
         self.assertFalse(db.meet.entries.find().count() > 0)
 
