@@ -56,7 +56,7 @@ def meet(client, channel, nick, message, cmd, args):
     if args[0] == 'status':
         status(args[1], nick, args[2:])
         return nick + ": " + random_ack()
-    if args[0] == 'schedule':
+    elif args[0] == 'schedule':
         name = args[1]
         s = args_dict(args[4])  # schedule arguments, e.g. "days 1"
         schedule(name, args[2], args[3], s)
@@ -86,7 +86,23 @@ def meet(client, channel, nick, message, cmd, args):
         payload = {'title': 'helga-meet digest', 'content': '\n'.join(statuses)}
         r = requests.post("http://dpaste.com/api/v2/", payload)
         return r.headers['location']
-    if args[0] == 'remove':
+    elif args[0] == 'dump':
+        # dump meetup db
+        meetups = []
+        for meetup in db.meet.meetup.find():
+            meetups.append({
+                'name': meetup['name'],
+                'channel': meetup['channel'],
+                'participants': meetup['participants'],
+                'cron_interval': meetup['cron_interval'],
+            })
+        meetups = [json.dumps(s, sort_keys=True, indent=2) for s in meetups]
+        if not meetups:
+            return nick + ": query empty"
+        payload = {'title': 'helga-meet meetup dump', 'content': '\n'.join(meetups)}
+        r = requests.post("http://dpaste.com/api/v2/", payload)
+        return r.headers['location']
+    elif args[0] == 'remove':
         if nick in settings.OPERATORS:
             entries = len(args) > 2 and args[2] == 'entries'
             remove(args[1], entries)
