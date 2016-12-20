@@ -23,10 +23,10 @@ setup(
     include_package_data=True,
     zip_safe=True,
     install_requires=['helga', 'apscheduler'],
-    test_suite='tests/test_meet',
+    test_suite='tests',
     entry_points=dict(
         helga_plugins=[
-            'meet = helga_meet:meet',
+            'meet = helga_meet.helga_meet:meet',
         ],
     ),
 )

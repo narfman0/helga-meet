@@ -1,5 +1,4 @@
 from datetime import datetime
-import json
 
 import atexit
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -13,7 +12,7 @@ _client = None
 
 
 def status(name, nick, status):
-    db.meet.entries.add({
+    db.meet.entries.insert_one({
         'name': name,
         'nick': nick,
         'status': status,
@@ -21,16 +20,16 @@ def status(name, nick, status):
     })
 
 
-def schedule(name, channel, participants, schedule):
-    db.meet.meetup.update({
+def schedule(name, channel, participants, cron_interval):
+    db.meet.meetup.update(
         {'name': name},
         {"$set": {
             "channel": channel,
             "participants": participants,
-            "schedule": schedule,
+            "cron_interval": cron_interval,
         }},
-        True,
-    })
+        upsert=True,
+    )
 
 
 def remove(name):
@@ -38,7 +37,7 @@ def remove(name):
     db.meet.entries.delete_many({'name': name})
 
 
-@command('meet', help='System for asynchronous meetings e.g. standup')
+@command('meet', help='System for asynchronous meetings e.g. standup', shlex=True)
 def meet(client, channel, nick, message, cmd, args):
     global _client
     _client = client
@@ -47,12 +46,13 @@ def meet(client, channel, nick, message, cmd, args):
         return nick + ": " + random_ack()
     if args[0] == 'schedule':
         name = args[1]
-        s = args[4:]  # schedule arguments, e.g. "days 1"
-        status(name, args[2], args[3], dict(zip(s[::2], s[1::2])))
+        s = args[4].split(' ')  # schedule arguments, e.g. "days 1"
+        s = dict(zip(s[::2], s[1::2]))
+        schedule(name, args[2], args[3], s)
         add_meeting_scheduler(name)
         return random_ack()
     if args[0] == 'remove':
-        if nick in settings.operators:
+        if nick in settings.OPERATORS:
             remove(args[1])
             return random_ack()
         return "Sorry " + nick + ", you don't have permission to do that"
@@ -60,10 +60,10 @@ def meet(client, channel, nick, message, cmd, args):
 
 
 def add_meeting_scheduler(name):
-    schedule_kwargs = db.meet.meetup.find_one({'name': name})['schedule']
+    cron_interval = db.meet.meetup.find_one({'name': name})['cron_interval']
     scheduler.add_job(
         func=lambda: meeting_monitor(name),
-        trigger=CronTrigger(**schedule_kwargs),
+        trigger=CronTrigger(**cron_interval),
         id='meeting_monitor_' + name,
         replace_existing=True)
 

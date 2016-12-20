@@ -7,7 +7,6 @@ except ImportError:
 from mongomock import MongoClient
 sys.modules['helga.plugins'] = mock.Mock()  # hack to avoid py3 errors in test
 from helga.db import db
-from helga_meet.helga_meet import status, schedule, remove
 
 
 class Testmeet(unittest.TestCase):
@@ -21,23 +20,26 @@ class Testmeet(unittest.TestCase):
 
     def tearDown(self):
         db.meet.drop()
+        db.meet.meetup.drop()
+        db.meet.entries.drop()
 
     def test_meet_simple(self):
+        from helga_meet.helga_meet import status, schedule, remove
         # TODO add schedule checker to verify PSA was called
         test1 = {
             'channel': 'channel1',
             'name': 'test1',
             'participants': 'psa @all',
-            'schedule': 'seconds 1',
+            'cron_interval': {'seconds': '1'},
         }
         schedule(**test1)
-        status({'name': test1['name'], 'nick': 'n', 'status': 's1'})
-        self.assertTrue(len(db.meet.entries.find()) > 0)
+        status(test1['name'], 'n1', 's1')
+        self.assertTrue(db.meet.entries.find().count() > 0)
         result = db.meet.meetup.find_one({'name': test1['name']})
         self.assertEqual(test1['name'], result['name'])
         remove(test1['name'])
-        self.assertFalse(len(db.meet.meetup.find()) > 0)
-        self.assertFalse(len(db.meet.entries.find()) > 0)
+        self.assertFalse(db.meet.meetup.find().count() > 0)
+        self.assertFalse(db.meet.entries.find().count() > 0)
 
 
 if __name__ == '__main__':
