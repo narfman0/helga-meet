@@ -40,6 +40,18 @@ should be quoted, and are kwargs of datetime::
 
     !meet digest standup "year 2016 month 12 day 1" "year 2016 month 12 day 30"
 
+To get a list of all current meetups::
+
+    !meet dump
+
+To remove a particular meetup (assuming you are an OPERATOR)::
+
+    !meet remove test1
+
+And if you want to remove all associated status update along with the meetup::
+
+    !meet remove test1 entries
+
 Development
 -----------
 

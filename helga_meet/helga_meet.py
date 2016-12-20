@@ -104,8 +104,9 @@ def meet(client, channel, nick, message, cmd, args):
         return r.headers['location']
     elif args[0] == 'remove':
         if nick in settings.OPERATORS:
+            name = args[1]
             entries = len(args) > 2 and args[2] == 'entries'
-            remove(args[1], entries)
+            remove(name, entries)
             scheduler.remove_job('meeting_monitor_' + name)
             return random_ack()
         return "Sorry " + nick + ", you don't have permission to do that"
